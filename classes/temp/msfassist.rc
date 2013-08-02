@@ -1,0 +1,1 @@
+db_connect -y /opt/metasploit/apps/pro/ui/config/database.yml
